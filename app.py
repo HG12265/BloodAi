@@ -98,7 +98,7 @@ def send_async_email(app, msg):
             response = requests.post(url, json=payload, headers=headers)
             
             if response.status_code in [200, 201, 202]:
-                print("✅ Email sent successfully via Brevo API!")
+                print("✅ Email sent successfully!")
             else:
                 print(f"❌ Brevo Error: {response.text}")
         except Exception as e:
