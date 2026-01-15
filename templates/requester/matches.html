@@ -1,0 +1,247 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<!-- 1. EXTERNAL LIBRARIES -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<div class="container">
+    <!-- 2. HEADER SECTION -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Matches for <span class="text-danger">{{ request.patient_name }}</span></h2>
+        {% if request.status == 'Donated' %}
+        <!-- Highlighting this button because Donor said they donated -->
+            <a href="/request/close/{{ request.id }}" class="btn btn-warning fw-bold shadow" onclick="return confirm('Did you receive the blood? This will close the request.')">
+                🚚 Blood Arrived? Click to Verify & Close
+            </a>
+        {% elif request.status == 'Active' %}
+            <a href="/request/close/{{ request.id }}" class="btn btn-success" onclick="return confirm('Did you receive the blood? This will close the request.')">
+                ✅ Mark as Fulfilled
+            </a>
+        {% else %}
+            <span class="badge bg-secondary">Request Closed</span>
+        {% endif %}
+    </div>
+    
+    <div class="row">
+        <!-- 3. MAP SECTION (Left Side) -->
+        <div class="col-md-7 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
+                    <small class="text-muted fw-bold">
+                        🔴 Patient | 🟢 Donors | 🔵 Hospitals | 🟣 Blood Banks
+                    </small>
+                </div>
+                <div class="card-body p-0">
+                    <div id="map" style="height: 600px; width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. DONOR LIST SECTION (Right Side) -->
+        <div class="col-md-5">
+            <h5 class="mb-2">Top Recommended Donors</h5>
+            
+            <div class="list-group" style="max-height: 600px; overflow-y: auto;">
+                
+                <!-- START OF LOOP: This defines 'donor' -->
+                {% for donor in donors %}
+                <div class="list-group-item list-group-item-action flex-column align-items-start shadow-sm mb-3 border">
+                    
+                    <!-- A. Header: Name & AI Analysis (NEW UPDATE) -->
+                    <div class="d-flex w-100 justify-content-between align-items-center mb-2">
+                        <div>
+                            <h5 class="mb-0 text-primary fw-bold">{{ donor.name }}</h5>
+                            <!-- Show Age and Health if available, else default -->
+                            <small class="text-muted">
+                                Age: {{ donor.age if donor.age else 'N/A' }} | 
+                                Health: {{ donor.health_score if donor.health_score else '100' }}%
+                            </small>
+                        </div>
+                        
+                        <!-- AI PRIORITY BADGE -->
+                        <div class="text-end">
+                            {% if donor.priority_label == 'High' %}
+                                <span class="badge bg-success shadow-sm">
+                                    <i class="fas fa-arrow-up"></i> High Priority
+                                </span>
+                            {% elif donor.priority_label == 'Medium' %}
+                                <span class="badge bg-warning text-dark shadow-sm">
+                                    <i class="fas fa-minus"></i> Medium Priority
+                                </span>
+                            {% else %}
+                                <span class="badge bg-danger shadow-sm">
+                                    <i class="fas fa-arrow-down"></i> Low Priority
+                                </span>
+                            {% endif %}
+                            <br>
+                            <small class="text-muted" style="font-size: 0.75rem;">AI Score: {{ donor.ai_score }}</small>
+                        </div>
+                    </div>
+                    
+                    <p class="mb-2 text-muted small">
+                        <i class="fas fa-map-marker-alt text-danger"></i> {{ donor.distance }} km away
+                    </p>
+
+                    <!-- B. PHONE PRIVACY SECTION -->
+                    <div class="bg-light p-2 rounded mb-2 d-flex justify-content-between align-items-center border">
+                        <div>
+                            <i class="fas fa-phone-alt text-secondary"></i> 
+                            <!-- Check if phone exists before slicing -->
+                            <strong id="phone-display-{{ loop.index }}">
+                                {% if donor.phone %}
+                                    {{ donor.phone[:2] }}******{{ donor.phone[-2:] }}
+                                {% else %}
+                                    No Phone
+                                {% endif %}
+                            </strong>
+                        </div>
+                        {% if donor.phone %}
+                        <button class="btn btn-sm btn-outline-dark" onclick="revealNumber('{{ loop.index }}', '{{ donor.phone }}')">
+                            👁️ Show
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    <!-- C. ACTION BUTTONS GRID -->
+                    <div class="d-flex gap-2 mt-2 flex-wrap">
+                        
+                        <!-- Send In-App Request -->
+                        <a href="/send_request/{{ donor.id }}/{{ request.id }}" class="btn btn-sm btn-danger flex-grow-1">
+                            <i class="fas fa-paper-plane"></i> Request & Alert
+                        </a>
+
+                        <!-- Call Button -->
+                        <a href="tel:{{ donor.phone }}" class="btn btn-sm btn-outline-primary flex-grow-1">
+                            <i class="fas fa-phone"></i> Call
+                        </a>
+
+                        <!-- WhatsApp Button -->
+                        <a href="https://wa.me/91{{ donor.phone }}?text=Hello {{ donor.name }}, I found you on BloodAI. Urgent need for {{ request.blood_group }} blood. Please help!" 
+                           target="_blank" 
+                           class="btn btn-sm btn-success flex-grow-1">
+                            <i class="fab fa-whatsapp"></i> Chat
+                        </a>                        
+
+                        <!-- Map Route -->
+                        <a href="https://www.google.com/maps/dir/?api=1&destination={{ donor.lat }},{{ donor.lon }}" 
+                           target="_blank" class="btn btn-sm btn-outline-secondary">
+                           <i class="fas fa-directions"></i> Map
+                        </a>
+                        <!-- REPORT BUTTON (Spam/Fake) -->
+                        <a href="/report_donor/{{ donor.id }}/{{ request.id }}" 
+                           class="btn btn-sm btn-outline-dark flex-grow-1" 
+                           onclick="return confirm('⚠️ Report this donor?\n\nIf they get 3 reports, they will be auto-blocked.\nUse only for Fake/No-Show/Misbehavior.')">
+                            ⚠️ Report
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">No compatible donors registered nearby. Check the map for Real Blood Banks (Violet Pins).</div>
+                {% endfor %}
+                <!-- END OF LOOP -->
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // --- 1. Initialize Map ---
+    var map = L.map('map').setView([{{ request.lat }}, {{ request.lon }}], 13);
+    
+    L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: 'Map data &copy; Google'
+    }).addTo(map);
+
+    // --- 2. Define Layer Groups (Ithu thaan Show/Hide-ku mukkiyam) ---
+    var donorLayer = L.layerGroup().addTo(map);   // Donors group
+    var medicalLayer = L.layerGroup().addTo(map); // Hospitals & Blood Banks group
+    // Note: Patient-ah eppovum map-la irukira maari direct-ah map-ke add panniduvom.
+
+    // --- 3. Define Icons ---
+    var patientIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+        iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', shadowSize: [41, 41]
+    });
+    var donorIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+        iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', shadowSize: [41, 41]
+    });
+    var hospitalIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+        iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', shadowSize: [41, 41]
+    });
+    var bloodBankIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png',
+        iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', shadowSize: [41, 41]
+    });
+
+    // --- 4. Add Patient Marker (Directly to Map) ---
+    L.marker([{{ request.lat }}, {{ request.lon }}], {icon: patientIcon})
+        .addTo(map)
+        .bindPopup("<b>🆘 Patient Location</b><br>{{ request.hospital_address }}")
+        .openPopup();
+
+    // --- 5. Add Donor Markers (To donorLayer) ---
+    {% for donor in donors %}
+        L.marker([{{ donor.lat }}, {{ donor.lon }}], {icon: donorIcon})
+            .addTo(donorLayer) // Add to group, not map directly
+            .bindPopup(`
+                <div style="text-align:center">
+                    <b style="color:green">🙋 Donor: {{ donor.name }}</b><br>
+                    Priority: {{ donor.priority_label }}<br>
+                    <a href="tel:{{ donor.phone }}" style="color:white; background:green; padding:3px 8px; border-radius:4px; display:inline-block; margin-top:5px; text-decoration:none;">📞 Call</a>
+                </div>
+            `);
+    {% endfor %}
+
+    // --- 6. Fetch Real Medical Data (To medicalLayer) ---
+    function fetchRealMedical(lat, lon) {
+        const radius = 10000; // 10km
+        const query = `[out:json];(node["amenity"~"hospital|blood_bank"](around:${radius},${lat},${lon});way["amenity"~"hospital|blood_bank"](around:${radius},${lat},${lon}););out center;`;
+        const url = "https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(query);
+
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                data.elements.forEach(el => {
+                    let mLat = el.lat || (el.center ? el.center.lat : null);
+                    let mLon = el.lon || (el.center ? el.center.lon : null);
+                    if(!mLat) return;
+
+                    let name = el.tags.name || "Medical Center";
+                    let isBB = el.tags.amenity === 'blood_bank' || name.toLowerCase().includes('blood');
+                    
+                    L.marker([mLat, mLon], {icon: isBB ? bloodBankIcon : hospitalIcon})
+                        .addTo(medicalLayer) // Add to group
+                        .bindPopup(`
+                            <b>${isBB ? '🩸 Blood Bank' : '🏥 Hospital'}</b><br>${name}<br>
+                            <a href="https://www.google.com/maps/dir/?api=1&destination=${mLat},${mLon}" target="_blank">Navigate</a>
+                        `);
+                });
+            });
+    }
+    fetchRealMedical({{ request.lat }}, {{ request.lon }});
+
+    // --- 7. Add Layer Control (The Show/Hide Menu) ---
+    var overlayMaps = {
+        "<span style='color: green; font-weight:bold;'>Show Donors</span>": donorLayer,
+        "<span style='color: blue; font-weight:bold;'>Show Hospitals & Blood Banks</span>": medicalLayer
+    };
+
+    // Ithu map-oda top-right corner-la oru toggle box-ah create pannum
+    L.control.layers(null, overlayMaps, {collapsed: false}).addTo(map);
+
+    // --- Utility: Phone Reveal ---
+    function revealNumber(index, realNumber) {
+        var displaySpan = document.getElementById('phone-display-' + index);
+        if (displaySpan) {
+            displaySpan.innerText = displaySpan.innerText.includes('******') ? realNumber : realNumber.substring(0, 2) + "******" + realNumber.substring(realNumber.length - 2);
+        }
+    }
+</script>
+{% endblock %}

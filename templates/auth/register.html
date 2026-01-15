@@ -1,0 +1,164 @@
+{% extends "layout.html" %}
+{% block content %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-danger text-white">Join BloodAI Network</div>
+            <div class="card-body">
+                <form method="POST">
+                    <!-- 1. Basic Info -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Full Name</label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>Phone Number</label>
+                            <input type="tel" name="phone" class="form-control" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3"><label>Email</label><input type="email" name="email" class="form-control" required></div>
+                    <div class="mb-3"><label>Password</label><input type="password" name="password" class="form-control" required></div>
+
+                    <!-- Role Selection -->
+                    <div class="mb-3">
+                        <label>I want to:</label>
+                        <select name="role" class="form-select" id="roleSelect" onchange="toggleDonorFields()">
+                            <option value="requester">Request Blood</option>
+                            <option value="donor">Donate Blood</option>
+                        </select>
+                    </div>
+
+                    <!-- DONOR SPECIFIC FIELDS -->
+                    <div id="donorFields" style="display:none; border-top: 1px solid #ddd; padding-top: 20px;">
+                        <h5 class="text-secondary">🩸 Donor Profile</h5>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label>Blood Group</label>
+                                <select name="blood_group" class="form-select">
+                                    <option>A+</option><option>B+</option><option>O+</option><option>AB+</option>
+                                    <option>A-</option><option>B-</option><option>O-</option><option>AB-</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label>Date of Birth</label>
+                                <input type="date" name="dob" class="form-control">
+                            </div>
+                        </div>
+
+                        <!-- Health Checklist -->
+                        <label class="fw-bold mt-2">Health Check (For AI Score)</label>
+                        <div class="card p-3 bg-light mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="q_weight" value="yes">
+                                <label class="form-check-label">Is your weight LESS than 50kg?</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="q_alcohol" value="yes">
+                                <label class="form-check-label">Consumed alcohol in last 24 hours?</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="q_surgery" value="yes">
+                                <label class="form-check-label">Major surgery in last 6 months?</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="q_tattoo" value="yes">
+                                <label class="form-check-label">Got a tattoo in last 6 months?</label>
+                            </div>
+                        </div>
+
+                        <!-- Location Section -->
+                        <h5 class="text-secondary">📍 Your Home Location</h5>
+                        <p class="small text-muted">We use this to notify you when someone nearby needs help.</p>
+                        
+                        <button type="button" class="btn btn-outline-primary btn-sm mb-2" onclick="getLocation()">
+                            🎯 Detect My Location
+                        </button>
+                        <div id="map" style="height: 250px; border-radius: 5px;"></div>
+                        <input type="hidden" id="lat" name="lat" value="13.0827">
+                        <input type="hidden" id="lon" name="lon" value="80.2707">
+                    </div>
+
+                    <button type="submit" class="btn btn-danger w-100 mt-3">Register</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // Toggle Fields
+    function toggleDonorFields() {
+        var role = document.getElementById("roleSelect").value;
+        var fields = document.getElementById("donorFields");
+        fields.style.display = (role === 'donor') ? 'block' : 'none';
+        
+        // Resize map if made visible (Leaflet quirk)
+        if(role === 'donor') {
+            setTimeout(function(){ map.invalidateSize(); }, 400);
+        }
+    }
+
+    // Map Setup
+    var map = L.map('map').setView([13.0827, 80.2707], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+    var marker = L.marker([13.0827, 80.2707], {draggable: true}).addTo(map);
+
+    marker.on('dragend', function(e) {
+        var pos = marker.getLatLng();
+        document.getElementById('lat').value = pos.lat;
+        document.getElementById('lon').value = pos.lng;
+    });
+
+    // SMART LOCATION LOGIC (GPS -> Fallback) 🚀
+    function getLocation() {
+        var btn = document.querySelector("button[onclick='getLocation()']");
+        btn.innerText = "⏳ Detecting...";
+        
+        if (navigator.geolocation) {
+            // Attempt 1: High Accuracy (15s Timeout)
+            navigator.geolocation.getCurrentPosition(success, function(err){
+                if(err.code === err.TIMEOUT) {
+                    // Attempt 2: Fallback to Network
+                    console.log("Switching to Network Location...");
+                    navigator.geolocation.getCurrentPosition(success, fail, {
+                        enableHighAccuracy: false, timeout: 10000
+                    });
+                } else {
+                    fail(err);
+                }
+            }, { enableHighAccuracy: true, timeout: 15000 });
+        } else {
+            alert("Geolocation not supported.");
+        }
+    }
+
+    function success(pos) {
+        var lat = pos.coords.latitude;
+        var lon = pos.coords.longitude;
+        
+        map.setView([lat, lon], 18);
+        marker.setLatLng([lat, lon]);
+        document.getElementById('lat').value = lat;
+        document.getElementById('lon').value = lon;
+        
+        var btn = document.querySelector("button[onclick='getLocation()']");
+        btn.innerText = "✅ Found!";
+        btn.classList.remove('btn-outline-primary');
+        btn.classList.add('btn-success');
+    }
+
+    function fail(err) {
+        alert("GPS Error: " + err.message + ". Please drag the pin manually.");
+        var btn = document.querySelector("button[onclick='getLocation()']");
+        btn.innerText = "🎯 Detect My Location";
+    }
+</script>
+{% endblock %}

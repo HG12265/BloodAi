@@ -1,0 +1,94 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<!-- Custom CSS for Landing Page -->
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, #d31027 0%, #ea384d 100%);
+        color: white;
+        padding: 80px 0;
+        border-radius: 0 0 50px 50px;
+        margin-top: -25px; /* Pull up to navbar */
+        box-shadow: 0 10px 30px rgba(211, 16, 39, 0.3);
+    }
+    .feature-card {
+        transition: transform 0.3s ease;
+        border: none;
+        border-radius: 15px;
+    }
+    .feature-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+    }
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #d31027;
+    }
+    .step-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+</style>
+
+<!-- 1. HERO SECTION -->
+<div class="hero-section text-center mb-5">
+    <div class="container">
+        <h1 class="display-3 fw-bold mb-3">Save a Life, Be a Hero.</h1>
+        <p class="lead mb-4" style="opacity: 0.9;">
+            AI-Driven Blood Donation System connecting patients with <br> 
+            the nearest compatible donors in real-time.
+        </p>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="/register/requester" class="btn btn-light btn-lg text-danger fw-bold shadow">
+                🩸 Request Blood
+            </a>
+            <a href="/register/donor" class="btn btn-outline-light btn-lg fw-bold">
+                🤝 Become a Donor
+            </a>
+        </div>         
+    </div>
+</div>
+
+<!-- 2. FEATURES GRID -->
+<div class="container mb-5">
+    <div class="row text-center">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 p-4 feature-card shadow-sm">
+                <div class="step-icon">🤖</div>
+                <h4>AI Priority Match</h4>
+                <p class="text-muted">Our ML algorithm finds the fastest and most reliable donor based on distance & health score.</p>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 p-4 feature-card shadow-sm">
+                <div class="step-icon">📍</div>
+                <h4>GPS Tracking</h4>
+                <p class="text-muted">Real-time map tracking allows you to see the donor's location and estimated time of arrival.</p>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 p-4 feature-card shadow-sm">
+                <div class="step-icon">⚡</div>
+                <h4>Instant Alerts</h4>
+                <p class="text-muted">Donors receive instant SMS/Email alerts when a nearby patient needs help.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 4. CALL TO ACTION FOOTER -->
+<div class="container text-center mb-5">
+    <div class="card bg-dark text-white p-5 border-0" style="border-radius: 20px;">
+        <h3>Ready to make a difference?</h3>
+        <p class="mb-4">Join our community of lifesavers today.</p>
+        <a href="/register" class="btn btn-danger btn-lg rounded-pill px-5">Join Now</a>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer class="text-center py-4 text-muted border-top">
+    <p class="mb-0">© 2025 BloodAI Project. Developed for Final Year Project.</p>
+</footer>
+
+{% endblock %}

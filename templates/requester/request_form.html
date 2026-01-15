@@ -1,0 +1,180 @@
+{% extends "layout.html" %}
+{% block content %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-danger text-white">
+                <h3 class="mb-0">Request Blood (Emergency)</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    
+                    <!-- Section 1: Patient Details -->
+                    <h5 class="text-secondary mb-3">👤 Patient Details</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label>Patient Name</label>
+                            <input type="text" name="patient_name" class="form-control" placeholder="Who needs blood?" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label>Contact Number</label>
+                            <input type="tel" name="contact_number" class="form-control" placeholder="Primary contact" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label>Blood Group</label>
+                            <select name="blood_group" class="form-select">
+                                <option>A+</option><option>A-</option>
+                                <option>B+</option><option>B-</option>
+                                <option>O+</option><option>O-</option>
+                                <option>AB+</option><option>AB-</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label>Units Needed</label>
+                            <input type="number" name="units" class="form-control" value="1" min="1" max="10">
+                        </div>
+                        <div class="col-md-4">
+                            <label>Urgency (1-10)</label>
+                            <input type="number" name="urgency" class="form-control text-danger fw-bold" value="10" min="1" max="10">
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Location -->
+                    <hr>
+                    <h5 class="text-secondary mb-3">📍 Hospital Location</h5>
+                    
+                    <div class="mb-3">
+                        <label>Hospital Name / Landmark</label>
+                        <input type="text" name="hospital_address" class="form-control" placeholder="e.g. Apollo Hospital, Greams Road" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Pin Exact Location (Drag marker to adjust)</label>
+                        <div class="d-grid gap-2 mb-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="getLocation()">
+                                🎯 Use My Current Location
+                            </button>
+                        </div>
+                        <!-- The Map -->
+                        <div id="map" style="height: 300px; border-radius: 8px; border: 1px solid #ddd;"></div>
+                    </div>
+
+                    <!-- Hidden Inputs to store Lat/Lon -->
+                    <input type="hidden" id="lat" name="lat" value="13.0827">
+                    <input type="hidden" id="lon" name="lon" value="80.2707">
+
+                    <button type="submit" class="btn btn-danger btn-lg w-100 mt-3">Find Donors Nearby</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // 1. Default Location (Chennai)
+    var curLat = 13.0827;
+    var curLon = 80.2707;
+
+    // 2. Initialize Map
+    var map = L.map('map').setView([curLat, curLon], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // 3. Add Draggable Marker
+    var marker = L.marker([curLat, curLon], {draggable: true}).addTo(map);
+
+    // 4. Update Inputs on Drag
+    function updateInputs(lat, lon) {
+        document.getElementById('lat').value = lat;
+        document.getElementById('lon').value = lon;
+    }
+
+    marker.on('dragend', function(e) {
+        var position = marker.getLatLng();
+        updateInputs(position.lat, position.lng);
+    });
+
+    // 5. SMART LOCATION LOGIC (GPS -> Fallback to Network) 🚀
+    function getLocation() {
+        var btn = document.querySelector("button[onclick='getLocation()']");
+        btn.innerHTML = "⏳ Locating... (Please Wait)";
+        btn.disabled = true;
+
+        if (navigator.geolocation) {
+            // Attempt 1: High Accuracy (GPS) - 15 Seconds Limit
+            navigator.geolocation.getCurrentPosition(showPosition, function(error) {
+                if (error.code === error.TIMEOUT) {
+                    // Attempt 2: If GPS times out, switch to Low Accuracy (Mobile Network)
+                    console.log("GPS timed out, switching to Network Mode...");
+                    navigator.geolocation.getCurrentPosition(showPosition, showError, {
+                        enableHighAccuracy: false, // Low accuracy is faster
+                        timeout: 10000
+                    });
+                } else {
+                    showError(error);
+                }
+            }, {
+                enableHighAccuracy: true,
+                timeout: 15000 
+            });
+        } else {
+            alert("Geolocation is not supported by this browser.");
+            resetBtn(btn);
+        }
+    }
+
+    function showPosition(position) {
+        var lat = position.coords.latitude;
+        var lon = position.coords.longitude;
+        var accuracy = position.coords.accuracy;
+
+        // Zoom map to location
+        map.setView([lat, lon], 18);
+        marker.setLatLng([lat, lon]);
+        updateInputs(lat, lon);
+        
+        // Success Feedback
+        var btn = document.querySelector("button[onclick='getLocation()']");
+        btn.innerHTML = "🎯 Location Found!";
+        btn.className = "btn btn-success btn-sm"; 
+        
+        // If accuracy is bad (>50m), warn the user
+        if (accuracy > 50) {
+            alert("Location found (Approximate). Please drag the pin to the exact hospital entrance.");
+        } else {
+             setTimeout(() => resetBtn(btn), 3000);
+        }
+    }
+
+    function showError(error) {
+        var btn = document.querySelector("button[onclick='getLocation()']");
+        resetBtn(btn);
+        
+        switch(error.code) {
+            case error.PERMISSION_DENIED:
+                alert("Permission Denied. Please allow Location Access in browser settings."); break;
+            case error.POSITION_UNAVAILABLE:
+                alert("Location unavailable. Try moving outside."); break;
+            case error.TIMEOUT:
+                alert("Location timed out completely. Please drag the pin manually."); break;
+            default:
+                alert("An unknown error occurred."); break;
+        }
+    }
+
+    function resetBtn(btn) {
+        btn.innerHTML = "🎯 Use My Current Location";
+        btn.disabled = false;
+        btn.className = "btn btn-outline-primary btn-sm";
+    }
+</script>
+{% endblock %}

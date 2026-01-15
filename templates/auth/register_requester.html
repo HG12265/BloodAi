@@ -1,0 +1,39 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4>🏥 Register to Request Blood</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label>Full Name</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Phone Number</label>
+                        <input type="tel" name="phone" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Email Address</label>
+                        <input type="email" name="email" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Password</label>
+                        <input type="password" name="password" class="form-control" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-danger w-100 btn-lg">Create Account</button>
+                    
+                    <div class="text-center mt-3">
+                        <small>Are you a donor? <a href="/register/donor">Register here</a></small><br>
+                        <small>Already have an account? <a href="/login">Login here</a></small>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

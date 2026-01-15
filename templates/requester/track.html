@@ -1,0 +1,89 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<!-- Leaflet & Routing Machine -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    #map { height: 70vh; width: 100%; border-radius: 15px; border: 2px solid #333; }
+    .floating-card {
+        position: fixed; bottom: 20px; left: 5%; right: 5%; width: 90%;
+        background: white; padding: 15px; border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 1000;
+    }
+</style>
+
+<div class="container-fluid p-0">
+    <div id="map"></div>
+
+    <!-- Info Card (Bottom) -->
+    <div class="floating-card">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-0 fw-bold">{{ donor.name }} <span class="badge bg-success">On the way</span></h5>
+                <small class="text-muted">🚗 Arriving with {{ request.blood_group }} Blood</small>
+            </div>
+            <div>
+                <a href="tel:{{ donor.phone }}" class="btn btn-success btn-sm rounded-circle p-3">
+                    <i class="fas fa-phone"></i>
+                </a>
+            </div>
+        </div>
+        <hr class="my-2">
+        <div class="d-flex justify-content-between small">
+            <span id="status-text">Connecting to GPS...</span>
+            <span>Dest: {{ request.hospital_address }}</span>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // 1. Setup Map
+    var map = L.map('map').setView([{{ request.lat }}, {{ request.lon }}], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+
+    // 2. Icons
+    var hospitalIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+        iconSize: [30, 50], iconAnchor: [15, 50]
+    });
+    
+    // 🚗 CAR ICON for Donor
+    var carIcon = L.icon({
+        iconUrl: 'https://cdn-icons-png.flaticon.com/512/3097/3097180.png', // Car/Ambulance Icon
+        iconSize: [40, 40], iconAnchor: [20, 20]
+    });
+
+    // 3. Add Hospital Marker (Static)
+    L.marker([{{ request.lat }}, {{ request.lon }}], {icon: hospitalIcon})
+     .addTo(map).bindPopup("<b>Hospital</b><br>{{ request.hospital_address }}").openPopup();
+
+    // 4. Donor Marker (Dynamic)
+    var donorMarker = L.marker([{{ donor.lat }}, {{ donor.lon }}], {icon: carIcon}).addTo(map);
+
+    // 5. LIVE TRACKING LOGIC 📡
+    function updateDonorPosition() {
+        fetch('/api/get_donor_location/{{ donor.id }}')
+            .then(response => response.json())
+            .then(data => {
+                var newLat = data.lat;
+                var newLon = data.lon;
+
+                // Move the Car Icon Smoothly
+                donorMarker.setLatLng([newLat, newLon]);
+                
+                // Update Status Text
+                document.getElementById('status-text').innerHTML = 
+                    `<i class="fas fa-satellite-dish text-success"></i> Live Updating...`;
+                
+                // Optional: Pan map if donor goes off screen
+                // map.panTo([newLat, newLon]); 
+            })
+            .catch(err => console.log("Tracking Error:", err));
+    }
+
+    // Refresh every 3 seconds (Real-time feel)
+    setInterval(updateDonorPosition, 3000);
+
+</script>
+{% endblock %}

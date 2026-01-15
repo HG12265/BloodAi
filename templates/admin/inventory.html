@@ -1,0 +1,78 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>🏥 Blood Bank Inventory</h2>
+        <a href="/admin" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+
+    <div class="row">
+        <!-- Update Form -->
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">Update Stock</div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label>Blood Group</label>
+                            <select name="blood_group" class="form-select">
+                                {% for s in stocks %}
+                                <option value="{{ s.blood_group }}">{{ s.blood_group }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label>Action</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="action" id="add" value="add" checked>
+                                <label class="btn btn-outline-success" for="add">+ Add</label>
+
+                                <input type="radio" class="btn-check" name="action" id="remove" value="remove">
+                                <label class="btn btn-outline-danger" for="remove">- Remove</label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label>Units (Bags)</label>
+                            <input type="number" name="units" class="form-control" min="1" value="1" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Update Inventory</button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <div class="card shadow-sm border-success">
+                    <div class="card-body text-center">
+                        <h5>📥 Export Data</h5>
+                        <p class="small text-muted">Download list of all registered donors.</p>
+                        <a href="/admin/export_donors" class="btn btn-success w-100">Download CSV Report</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stock Display -->
+        <div class="col-md-8">
+            <div class="row">
+                {% for s in stocks %}
+                <div class="col-md-4 mb-3">
+                    <div class="card text-center shadow-sm border-0 h-100">
+                        <div class="card-body d-flex flex-column justify-content-center">
+                            <h1 class="display-4 fw-bold {% if s.units < 5 %}text-danger{% else %}text-success{% endif %}">
+                                {{ s.units }}
+                            </h1>
+                            <h5 class="text-muted">{{ s.blood_group }}</h5>
+                            {% if s.units < 5 %}
+                                <span class="badge bg-danger">Low Stock</span>
+                            {% else %}
+                                <span class="badge bg-success">Healthy</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

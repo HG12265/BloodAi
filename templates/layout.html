@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BloodAI - Save Lives</title>
+    
+    <!-- 1. EXTERNAL CSS LIBRARIES -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- 2. CUSTOM STYLES -->
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; }
+        .navbar { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .ai-score-high { color: green; font-weight: bold; }
+        .ai-score-med { color: orange; }
+        .map-container { height: 400px; background: #e9ecef; border-radius: 8px; }
+        
+        /* CHATBOT STYLES */
+        #chat-icon {
+            position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px;
+            background: #dc3545; color: white; border-radius: 50%;
+            text-align: center; line-height: 60px; font-size: 30px;
+            cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            z-index: 1000; transition: transform 0.3s;
+        }
+        #chat-icon:hover { transform: scale(1.1); }
+
+        #chat-box {
+            display: none; position: fixed; bottom: 90px; right: 20px;
+            width: 320px; height: 450px; background: white;
+            border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            z-index: 1000; flex-direction: column; overflow: hidden;
+            border: 1px solid #ddd;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #dc3545, #ff6b6b);
+            color: white; padding: 15px; display: flex;
+            justify-content: space-between; align-items: center; font-weight: bold;
+        }
+
+        .chat-body {
+            flex: 1; padding: 15px; overflow-y: auto;
+            background: #f1f3f5; font-size: 14px;
+        }
+
+        .chat-input { display: flex; border-top: 1px solid #ddd; background: white; align-items: center; }
+        .chat-input input { flex: 1; padding: 12px; border: none; outline: none; }
+        
+        /* NEW STYLES FOR VOICE BUTTON */
+        .chat-input button {
+            background: white; border: none; padding: 0 10px;
+            color: #dc3545; font-size: 18px; cursor: pointer;
+            transition: color 0.3s;
+        }
+        .chat-input button:hover { color: #a71d2a; }
+        
+        /* Animation when listening */
+        .listening {
+            color: white !important;
+            background-color: #dc3545 !important;
+            border-radius: 50%;
+            width: 35px; height: 35px;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+
+        .bot-msg, .user-msg {
+            padding: 10px 15px; border-radius: 20px; margin-bottom: 10px;
+            max-width: 80%; word-wrap: break-word; font-size: 13px;
+        }
+        .bot-msg { background: white; align-self: flex-start; color: #333; border-bottom-left-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .user-msg { background: #dc3545; color: white; align-self: flex-end; margin-left: auto; border-bottom-right-radius: 5px; }
+    </style>
+</head>
+<body>
+
+    <!-- 3. NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-danger sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="fas fa-heartbeat"></i> BloodAI
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/camps">⛺ Camps</a></li>
+                    
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.role == 'admin' %}
+                            <li class="nav-item"><a class="nav-link" href="/admin">Admin Panel</a></li>
+                        {% elif current_user.role == 'donor' %}
+                            <li class="nav-item"><a class="nav-link" href="/donor/dashboard">Dashboard</a></li>
+                        {% else %}
+                            <li class="nav-item"><a class="nav-link" href="/requester/dashboard">My Requests</a></li>
+                        {% endif %}
+                        <li class="nav-item ms-2">
+                            <a class="nav-link btn btn-outline-light btn-sm px-3 rounded-pill" href="/logout">Logout</a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>                      
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 4. FLASH MESSAGES -->
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- 6. 🤖 AI CHATBOT WIDGET -->
+    <div id="chat-icon" onclick="toggleChat()">
+        <i class="fas fa-robot"></i>
+    </div>
+
+    <div id="chat-box">
+        <div class="chat-header">
+            <span><i class="fas fa-first-aid"></i> BloodAI Assistant</span>
+            <span style="cursor:pointer;" onclick="toggleChat()"><i class="fas fa-times"></i></span>
+        </div>
+        <div class="chat-body" id="chat-body">
+            <div class="bot-msg">👋 Hello! I am your AI Assistant.<br>How can I help you today?</div>
+            <div class="bot-msg text-muted" style="font-size: 11px;">Try asking: "Need A+ Blood" or click the Mic 🎤</div>
+        </div>
+        <div class="chat-input">
+            <input type="text" id="user-input" placeholder="Type or click mic..." onkeypress="handleEnter(event)">
+            <!-- Mic Button Added Here -->
+            <button id="mic-btn" onclick="startVoice()"><i class="fas fa-microphone"></i></button>
+            <button onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <!-- 7. JAVASCRIPT LIBRARIES -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- 8. CHATBOT LOGIC (VOICE ENABLED) -->
+    <script>
+        function toggleChat() {
+            var box = document.getElementById('chat-box');
+            box.style.display = (box.style.display === 'flex') ? 'none' : 'flex';
+            if(box.style.display === 'flex') {
+                document.getElementById('user-input').focus();
+            }
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        // --- 🎤 VOICE RECOGNITION (Speech to Text) ---
+        function startVoice() {
+            // Check if browser supports speech recognition
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert("Your browser does not support voice input. Try Chrome or Edge.");
+                return;
+            }
+
+            var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            var recognition = new SpeechRecognition();
+            
+            recognition.lang = 'en-US'; // Default English (can be changed)
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            var micBtn = document.getElementById('mic-btn');
+            
+            recognition.start();
+
+            recognition.onstart = function() {
+                micBtn.classList.add("listening"); // Add pulse animation
+                document.getElementById('user-input').placeholder = "Listening...";
+            };
+
+            recognition.onresult = function(event) {
+                var speechResult = event.results[0][0].transcript;
+                document.getElementById('user-input').value = speechResult;
+                micBtn.classList.remove("listening");
+                
+                // Auto send after speaking
+                setTimeout(sendMessage, 500);
+            };
+
+            recognition.onerror = function(event) {
+                console.error("Speech Error:", event.error);
+                micBtn.classList.remove("listening");
+                document.getElementById('user-input').placeholder = "Type message...";
+            };
+
+            recognition.onend = function() {
+                micBtn.classList.remove("listening");
+                document.getElementById('user-input').placeholder = "Type message...";
+            };
+        }
+
+        // --- 🗣️ TEXT TO SPEECH (AI Voice) ---
+        function speakText(text) {
+            // Cancel any current speech
+            window.speechSynthesis.cancel();
+
+            // Strip HTML tags so AI doesn't say "Break line" or "Bold"
+            var cleanText = text.replace(/<[^>]*>/g, '');
+
+            var utterance = new SpeechSynthesisUtterance(cleanText);
+            
+            // Optional: Select a specific voice (Female/Male)
+            // var voices = window.speechSynthesis.getVoices();
+            // utterance.voice = voices[0]; // Usually default
+            
+            utterance.rate = 1; // Speed
+            utterance.pitch = 1; // Pitch
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function sendMessage() {
+            var input = document.getElementById('user-input');
+            var msg = input.value.trim();
+            if (msg === "") return;
+
+            // Display User Message
+            var chatBody = document.getElementById('chat-body');
+            chatBody.innerHTML += `<div class="user-msg">${msg}</div>`;
+            input.value = "";
+            chatBody.scrollTop = chatBody.scrollHeight;
+
+            // Show 'Typing...' placeholder
+            var loadingId = "load_" + Date.now();
+            chatBody.innerHTML += `<div class="bot-msg text-muted" id="${loadingId}">Typing...</div>`;
+            chatBody.scrollTop = chatBody.scrollHeight;
+
+            // Send to Backend
+            fetch('/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: msg})
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Remove Loading & Show Response
+                document.getElementById(loadingId).remove();
+                chatBody.innerHTML += `<div class="bot-msg">${data.response}</div>`;
+                chatBody.scrollTop = chatBody.scrollHeight;
+
+                // 🗣️ Speak the response automatically
+                speakText(data.response);
+            })
+            .catch(error => {
+                document.getElementById(loadingId).remove();
+                chatBody.innerHTML += `<div class="bot-msg text-danger">⚠️ Network Error. Check connection.</div>`;
+            });
+        }
+    </script>
+</body>
+</html>

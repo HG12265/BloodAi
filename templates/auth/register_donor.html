@@ -1,0 +1,220 @@
+{% extends "layout.html" %}
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4>🩸 Become a Donor</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <!-- Personal Info -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Full Name</label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>Phone Number</label>
+                            <input type="tel" name="phone" class="form-control" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3"><label>Email</label><input type="email" name="email" class="form-control" required></div>
+                    <div class="mb-3"><label>Password</label><input type="password" name="password" class="form-control" required></div>
+
+                    <!-- Donor Specific Details -->
+                    <h5 class="text-secondary mt-4">🩸 Medical Details</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label>Blood Group</label>
+                            <select name="blood_group" class="form-select">
+                                <option>A+</option><option>B+</option><option>O+</option><option>AB+</option>
+                                <option>A-</option><option>B-</option><option>O-</option><option>AB-</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label>Date of Birth</label>
+                            <input type="date" name="dob" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <!-- Health Checklist -->
+                    <!-- PROFESSIONAL HEALTH CHECK SECTION -->
+                    <h5 class="text-secondary mt-4">🩺 Medical Eligibility Screening</h5>
+                    <div class="alert alert-warning small py-2">
+                        <i class="fas fa-info-circle"></i> Please check the box if the condition applies to you. Honesty saves lives.
+                    </div>
+
+                    <div class="accordion mb-3" id="healthAccordion">
+    
+                        <!-- Category 1: Critical Diseases -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed text-danger fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                                    ⚠️ Chronic / Critical Conditions
+                                </button>
+                            </h2>
+                            <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#healthAccordion">
+                                <div class="accordion-body bg-light">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="q_hiv_hepa" value="yes">
+                                        <label class="form-check-label text-dark">
+                                            Tested positive for <b>HIV/AIDS, Hepatitis B or C</b>?
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="q_cancer" value="yes">
+                                        <label class="form-check-label text-dark">
+                                            History of <b>Cancer</b> or Blood Diseases?
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="q_heart" value="yes">
+                                        <label class="form-check-label text-dark">
+                                            Cardiac (Heart), Lung, or Kidney diseases?
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="q_diabetes" value="yes">
+                                        <label class="form-check-label text-dark">
+                                            Diabetes treated with <b>Insulin</b>?
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Category 2: Temporary & Lifestyle -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                                    ⏳ Temporary & Lifestyle Factors
+                                </button>
+                            </h2>
+                            <div id="collapseTwo" class="accordion-collapse collapse show" data-bs-parent="#healthAccordion">
+                                <div class="accordion-body">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="q_weight" value="yes">
+                                        <label class="form-check-label">Body weight is <b>less than 50kg</b>?</label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="q_alcohol" value="yes">
+                                        <label class="form-check-label">Consumed <b>alcohol</b> in the last 24 hours?</label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="q_surgery" value="yes">
+                                        <label class="form-check-label">Major <b>surgery or dental extraction</b> in last 6 months?</label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="q_tattoo" value="yes">
+                                        <label class="form-check-label">Got a <b>tattoo or piercing</b> in last 6 months?</label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="q_meds" value="yes">
+                                        <label class="form-check-label">Currently taking <b>Antibiotics</b> or other medication?</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="q_preg" value="yes">
+                                        <label class="form-check-label">Are you <b>pregnant</b> or breastfeeding? (Females only)</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" required>
+                        <label class="form-check-label small text-muted">
+                            I confirm that the above information is true. I understand that falsifying information puts lives at risk.
+                        </label>
+                    </div>
+
+                    <!-- Map -->
+                    <h5 class="text-secondary">📍 Your Location</h5>
+                    <button type="button" class="btn btn-outline-danger btn-sm mb-2" onclick="getLocation()">
+                        🎯 Detect My Location
+                    </button>
+                    <div id="map" style="height: 250px; border-radius: 5px;" class="mb-3"></div>
+                    <input type="hidden" id="lat" name="lat" value="13.0827">
+                    <input type="hidden" id="lon" name="lon" value="80.2707">
+
+                    <button type="submit" class="btn btn-danger w-100 btn-lg">Register as Donor</button>
+                    <div class="text-center mt-2">
+                        <small>Already have an account? <a href="/login">Login here</a></small>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // Map Initialization
+    var map = L.map('map').setView([13.0827, 80.2707], 13);
+    
+    // Google Satellite/Hybrid Layer
+    L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+    }).addTo(map);
+
+    var marker = L.marker([13.0827, 80.2707], {draggable: true}).addTo(map);
+
+    // Marker Drag Event
+    marker.on('dragend', function(e) {
+        var pos = marker.getLatLng();
+        document.getElementById('lat').value = pos.lat;
+        document.getElementById('lon').value = pos.lng;
+    });
+
+    // ✨ Accurate Location Logic
+    function getLocation() {
+        if (navigator.geolocation) {
+            // Button text loading...
+            var btn = document.querySelector("button[onclick='getLocation()']");
+            var originalText = btn.innerHTML;
+            btn.innerHTML = "⏳ Locating...";
+            btn.disabled = true;
+
+            // Options for High Accuracy
+            var options = {
+                enableHighAccuracy: true, // இது தான் முக்கியம்! (Forces GPS)
+                timeout: 10000,           // 10 seconds time தரும் (for better signal)
+                maximumAge: 0             // Old cached location வேண்டாம்
+            };
+
+            navigator.geolocation.getCurrentPosition(
+                function(pos) { // Success
+                    var lat = pos.coords.latitude;
+                    var lon = pos.coords.longitude;
+                    
+                    // Update Map & Marker
+                    map.setView([lat, lon], 18); // Zoom level increased for accuracy
+                    marker.setLatLng([lat, lon]);
+                    
+                    // Update Hidden Inputs
+                    document.getElementById('lat').value = lat;
+                    document.getElementById('lon').value = lon;
+
+                    // Reset button
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }, 
+                function(err) { // Error
+                    console.warn(`ERROR(${err.code}): ${err.message}`);
+                    alert("Location not found or permission denied.");
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }, 
+                options // Passing the options here
+            );
+        } else { 
+            alert("Geolocation not supported."); 
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,170 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>📂 {{ title }}</h2>
+        <div>
+            <!-- Smart Download Button -->
+            {% if type == 'attendees' %}
+                <a href="/admin/export/attendees_{{ camp_id }}" class="btn btn-success me-2">
+                    📥 Download List
+                </a>
+            {% elif type != 'camps_list' %}
+                <a href="/admin/export/{{ type }}" class="btn btn-success me-2">
+                    📥 Download CSV
+                </a>
+            {% endif %}
+            
+            <a href="/admin" class="btn btn-secondary">⬅ Back</a>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    
+                    <!-- TABLE HEADER -->
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <!-- DYNAMIC HEADERS -->
+                            {% if type == 'users' %}
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Phone</th>
+                            {% elif type == 'donors' %}
+                                <th>Status</th>
+                                <th>Reports</th>
+                                <th>Name & Badge 🏆</th>
+                                <th>Blood Group</th>
+                                <th>Donations</th>
+                                <th>Health Score</th>
+                                <th>Phone</th>
+                                <th>Location</th>
+                            {% elif type == 'active' %}
+                                <th>Patient</th>
+                                <th>Blood Group</th>
+                                <th>Requester</th>
+                                <th>Hospital</th>
+                                <th>Contact</th>
+                            {% elif type == 'history' %}
+                                <th>Patient</th>
+                                <th>Blood Group</th>
+                                <th>Requested By</th>
+                                <th>❤️ Fulfilled By (Donor)</th>
+                                <th>Donor Contact</th>
+                                <th>🔍 Blockchain / QR</th>
+                            {% elif type == 'camps_list' %}
+                                <th>Camp Title</th>
+                                <th>Date & Time</th>
+                                <th>Location</th>
+                                <th>Organizer</th>
+                                <th>Attendees Count</th>
+                                <th>Action</th>
+                            {% elif type == 'attendees' %}
+                                <th>Volunteer Name</th>
+                                <th>Blood Group</th>
+                                <th>Phone</th>
+                                <th>Email</th>
+                                <th>Registered At</th>                         
+                            {% endif %}
+                        </tr>
+                    </thead>
+
+                    <!-- TABLE BODY -->
+                    <tbody>
+                        {% for row in data %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+
+                            <!-- 1. ALL USERS -->
+                            {% if type == 'users' %}
+                                <td class="fw-bold">{{ row.name }}</td>
+                                <td>{{ row.email }}</td>
+                                <td>
+                                    <span class="badge {% if row.role=='admin' %}bg-dark{% elif row.role=='donor' %}bg-success{% else %}bg-primary{% endif %}">
+                                        {{ row.role|upper }}
+                                    </span>
+                                </td>
+                                <td>{{ row.phone }}</td>
+
+                            <!-- 2. REGISTERED DONORS -->
+                            {% elif type == 'donors' %}
+                                <td>
+                                    {% if row.is_blocked %}
+                                        <span class="badge bg-dark">🚫 BLOCKED</span>
+                                    {% else %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center fw-bold text-danger">{{ row.report_count }}</td>
+                                <td>
+                                    <strong>{{ row.name }}</strong>
+                                    <span title="Donations: {{ row.donation_count }}">{{ row.badge_info.icon }}</span>
+                                </td>
+                                <td><span class="badge bg-danger">{{ row.blood_group }}</span></td>
+                                <td class="text-center fw-bold">{{ row.donation_count }}</td>
+                                <td>{{ row.health_score }} / 100</td>
+                                <td>{{ row.phone }}</td>
+                                <td>
+                                    <a href="https://www.google.com/maps?q={{ row.lat }},{{ row.lon }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                        View Map
+                                    </a>
+                                </td>
+
+                            <!-- 3. ACTIVE REQUESTS -->
+                            {% elif type == 'active' %}
+                                <td class="fw-bold">{{ row.patient_name }}</td>
+                                <td><span class="badge bg-danger">{{ row.blood_group }}</span></td>
+                                <td>{{ row.requester_name }}</td>
+                                <td>{{ row.hospital }}</td>
+                                <td><a href="tel:{{ row.contact }}">{{ row.contact }}</a></td>
+
+                            <!-- 4. LIVES SAVED (HISTORY) -->
+                            {% elif type == 'history' %}
+                                <td class="fw-bold">{{ row.patient_name }}</td>
+                                <td><span class="badge bg-danger">{{ row.blood_group }}</span></td>
+                                <td>{{ row.requester_name }}</td>
+                                <td class="text-success fw-bold">🏆 {{ row.donor_name }}</td>
+                                <td>{{ row.donor_contact }}</td>
+                                <td>
+                                      <a href="/track_blood/{{ row.id }}" target="_blank" class="btn btn-sm btn-dark text-warning">
+                                           <i class="fas fa-qrcode"></i> Get QR
+                                      </a>
+                                </td>
+                            <!-- 5. CAMPS LIST -->
+                            {% elif type == 'camps_list' %}
+                                <td class="fw-bold">{{ row.title }}</td>
+                                <td>{{ row.date }} <br> <small>{{ row.time }}</small></td>
+                                <td>{{ row.location }}</td>
+                                <td>{{ row.organizer }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary rounded-pill">👥 {{ row.attendee_count }}</span>
+                                </td>
+                                <td>
+                                    <a href="/admin/camp/{{ row.id }}/attendees" class="btn btn-sm btn-dark">View List</a>
+                                </td>
+
+                            <!-- 6. CAMP ATTENDEES -->
+                            {% elif type == 'attendees' %}
+                                <td class="fw-bold">{{ row.name }}</td>
+                                <td><span class="badge bg-danger">{{ row.blood_group }}</span></td>
+                                <td><a href="tel:{{ row.phone }}">{{ row.phone }}</a></td>
+                                <td>{{ row.email }}</td>
+                                <td>{{ row.registered_at.strftime('%Y-%m-%d') }}</td>
+                            {% endif %}
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">No records found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

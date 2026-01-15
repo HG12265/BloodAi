@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container">
+    <div class="text-center mb-4">
+        <h2 class="fw-bold"><i class="fas fa-shield-alt text-success"></i> Immutable Blood Ledger</h2>
+        {% if request.bag_serial_no %}
+        <div class="alert alert-warning d-inline-block shadow-sm border-dark mt-2">
+            <h5 class="mb-0 fw-bold">🔐 SECURITY CHECK</h5>
+            <hr class="my-1">
+            <small>Verify this matches the physical bag:</small><br>
+            <span class="display-6 fw-bold text-dark">{{ request.bag_serial_no }}</span>
+        </div>
+        {% endif %}
+        <p class="text-muted">Tracking Cycle for Request #{{ request.id }}</p>
+        
+        <!-- QR Code for this specific chain -->
+        <div class="bg-white p-3 d-inline-block shadow rounded">
+            <img src="{{ url_for('generate_packet_qr', req_id=request.id) }}" width="150">
+            <br><small class="fw-bold text-danger">SCAN TO VERIFY</small>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-9">
+            <ul class="timeline" style="list-style: none; padding: 0;">
+                {% for block in chain %}
+                <li class="mb-4">
+                    <div class="card shadow-sm border-0" style="border-left: 5px solid {% if block.step == 'BLOOD_TRANSFUSED' %}#198754{% elif block.step == 'BLOOD_COLLECTED' %}#dc3545{% else %}#0d6efd{% endif %};">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <h5 class="fw-bold">{{ block.step }}</h5>
+                                <span class="badge bg-secondary">{{ block.timestamp.strftime('%d-%b %H:%M:%S') }}</span>
+                            </div>
+                            <p class="mb-2">{{ block.details }}</p>
+                            
+                            <!-- HASH DISPLAY -->
+                            <div class="bg-light p-2 rounded" style="font-family: monospace; font-size: 11px; word-break: break-all;">
+                                <span class="text-muted">PREV:</span> {{ block.prev_hash }}<br>
+                                <span class="text-dark fw-bold">HASH:</span> {{ block.current_hash }}
+                            </div>
+                        </div>
+                    </div>
+                    {% if not loop.last %}
+                        <div class="text-center text-muted my-2"><i class="fas fa-arrow-down"></i></div>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

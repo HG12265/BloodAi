@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-dark text-white">
+                <h4 class="mb-0">⛺ Create Blood Donation Camp</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label>Camp Title</label>
+                        <input type="text" name="title" class="form-control" placeholder="e.g. Mega Blood Drive 2025" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Organizer Name</label>
+                            <input type="text" name="organizer" class="form-control" placeholder="e.g. Red Cross / Rotary Club" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>Location / Venue</label>
+                            <input type="text" name="location" class="form-control" placeholder="e.g. City Hall, Chennai" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Date</label>
+                            <input type="date" name="date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>Time</label>
+                            <input type="time" name="time" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Description / Instructions</label>
+                        <textarea name="description" class="form-control" rows="3" placeholder="Details about the camp..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">🚀 Publish Event</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
